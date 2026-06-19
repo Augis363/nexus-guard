@@ -25,6 +25,11 @@ Optional Integrations (require ``langchain-core >= 0.3.0``)
 -----------------------------------------------------------
 - :class:`NexusSecureTool` — LangChain ``BaseTool`` wrapper with verification.
 - :class:`NexusSentinelCallback` — LangChain/LangGraph callback for observability.
+
+Agent Middleware (requires ``langchain >= 1.0``)
+------------------------------------------------
+- :class:`NexusGuardMiddleware` — ``AgentMiddleware`` that verifies every tool
+  call made by a ``create_agent`` agent. Recommended over per-tool wrapping.
 """
 
 from .engine import (
@@ -46,6 +51,9 @@ __all__ = [
     "MPPGuard",
     "PaymentChallenge",
     "parse_payment_challenge",
+    "NexusSecureTool",
+    "NexusSentinelCallback",
+    "NexusGuardMiddleware",
     "__version__",
 ]
 
@@ -59,4 +67,7 @@ def __getattr__(name: str):
     if name == "NexusSentinelCallback":
         from .langgraph import NexusSentinelCallback
         return NexusSentinelCallback
+    if name == "NexusGuardMiddleware":
+        from .middleware import NexusGuardMiddleware
+        return NexusGuardMiddleware
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

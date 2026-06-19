@@ -6,6 +6,7 @@ Step-by-step recipes for common Nexus Guard integration patterns.
 
 ## Table of Contents
 
+- [Guard a `create_agent` Agent with Middleware](#guard-a-create_agent-agent-with-middleware)
 - [Guard a LangGraph Agent](#guard-a-langgraph-agent)
 - [Guard Claude / Anthropic Tool Calls](#guard-claude--anthropic-tool-calls)
 - [Guard OpenAI Agent Tool Calls](#guard-openai-agent-tool-calls)
@@ -18,6 +19,60 @@ Step-by-step recipes for common Nexus Guard integration patterns.
 - [Block Custom Keywords](#block-custom-keywords)
 - [Report Decisions to the Dashboard](#report-decisions-to-the-dashboard)
 - [Handle Gateway Downtime](#handle-gateway-downtime)
+
+---
+
+## Guard a `create_agent` Agent with Middleware
+
+**Goal:** Verify every tool call made by a LangChain ≥ 1.0 `create_agent` agent
+with a single drop-in, instead of wrapping each tool. *(Requires
+`pip install "nexus-guard[middleware]"`, Python ≥ 3.10.)*
+
+```python
+from langchain.agents import create_agent
+from langchain_core.tools import tool
+from nexus_guard import NexusFinOpsGuard, SecurityBlockException
+from nexus_guard.middleware import NexusGuardMiddleware
+
+guard = NexusFinOpsGuard(mode="embedded", spend_threshold=1000)
+
+@tool
+def buy(item: str, price: float) -> str:
+    """Buy an item."""
+    return f"Bought {item} for ${price}"
+
+agent = create_agent(
+    model="claude-opus-4-8",
+    tools=[buy],
+    # One middleware protects every tool the agent can call.
+    middleware=[
+        NexusGuardMiddleware(
+            guard,
+            allowed_intents={"buy": "Purchase office supplies under $50"},
+        )
+    ],
+)
+
+with guard.session("Order a Python book under $35"):
+    # ✅ Aligned + under budget — runs.
+    agent.invoke({"messages": [("user", "Order Clean Code for $24.99")]})
+
+    # 🛑 A misaligned or over-budget tool call raises SecurityBlockException.
+    try:
+        agent.invoke({"messages": [("user", "Order a $5000 laptop")]})
+    except SecurityBlockException as e:
+        print(f"Blocked: {e}")
+```
+
+**Notes:**
+
+- `allowed_intents` is optional and keyed by tool name; tools you omit are still
+  verified against the session intent and the guard's policy.
+- The middleware enforces the guard's full policy (intent alignment,
+  `spend_threshold`, `spend_limit`, `blocked_keywords`) and works in both
+  embedded and remote modes.
+- For per-tool wrapping or Python 3.9, use
+  [`NexusSecureTool`](#wrap-a-langchain-basetool) instead.
 
 ---
 

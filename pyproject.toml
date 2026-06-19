@@ -43,12 +43,15 @@ classifiers = [
 dependencies = []
 
 [project.optional-dependencies]
-# LangChain / LangGraph integrations (NexusSecureTool, NexusSentinelCallback).
+# Lightweight LangChain integrations (NexusSecureTool, NexusSentinelCallback).
 langchain = ["langchain-core>=0.3.0"]
+# Agent middleware (NexusGuardMiddleware) needs the v1 agents framework.
+middleware = ["langchain>=1.0"]
 # Everything needed to develop and test the SDK itself.
 dev = [
     "pytest>=7.0",
     "langchain-core>=0.3.0",
+    "langchain>=1.0",
     "langgraph>=0.2.0",
     "build>=1.0",
 ]

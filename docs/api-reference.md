@@ -109,6 +109,60 @@ except SecurityBlockException as e:
 
 ---
 
+## `nexus_guard.middleware` module
+
+### `NexusGuardMiddleware`
+
+```python
+from nexus_guard.middleware import NexusGuardMiddleware
+```
+
+An `AgentMiddleware` (LangChain v1 agents framework) that verifies **every** tool
+call made by a `create_agent` agent through the Nexus gateway before execution.
+Recommended over per-tool wrapping.
+
+**Requires:** `langchain >= 1.0` (Python ≥ 3.10) — install with the `middleware` extra.
+
+#### Constructor
+
+```python
+NexusGuardMiddleware(
+    guard: NexusFinOpsGuard,
+    allowed_intents: dict[str, str] | None = None,
+)
+```
+
+| Parameter | Type | Description |
+|:----------|:-----|:------------|
+| `guard` | `NexusFinOpsGuard` | An initialized Nexus Guard instance (remote or embedded). |
+| `allowed_intents` | `dict[str, str] \| None` | Optional per-tool plain-English constraints, keyed by tool name. Tools not listed are verified against the session intent alone. |
+
+Denied calls raise `SecurityBlockException` (same contract as the rest of the SDK),
+unless `guard.fail_open` is `True` and the gateway is unreachable. Implements both
+the sync `wrap_tool_call` and async `awrap_tool_call` hooks.
+
+#### Usage
+
+```python
+from langchain.agents import create_agent
+
+agent = create_agent(
+    model="claude-opus-4-8",
+    tools=[search, buy],
+    middleware=[
+        NexusGuardMiddleware(
+            guard,
+            allowed_intents={"buy": "Purchase office supplies under $50"},
+        )
+    ],
+)
+
+with guard.session("Order a book under $35"):
+    agent.invoke({"messages": [("user", "Order Clean Code")]})
+```
+
+---
+
 ## `nexus_guard.langchain` module
 
 ### `NexusSecureTool`

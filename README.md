@@ -16,6 +16,15 @@
   <a href="#examples">Examples</a>
 </p>
 
+<p align="center"><strong>Your agent has the keys. Nexus Guard decides which doors it can open.</strong></p>
+
+<p align="center">
+  <a href="assets/nexus-guard-demo.mp4">
+    <img src="assets/nexus-guard-demo.gif" alt="Nexus Guard demo" width="720">
+  </a>
+  <br>
+</p>
+
 ---
 
 > Nexus Guard separates **agent reasoning** from **agent authorization**.
@@ -66,9 +75,14 @@ The **core guard is dependency-free** (Python ≥ 3.9, standard library only). A
 extras only for the integrations you use:
 
 ```bash
-pip install "nexus-guard[langchain]"   # LangChain / LangGraph wrappers
-pip install "nexus-guard[dev]"         # contributing / running the test suite
+pip install "nexus-guard[langchain]"    # LangChain tool wrapper + callback
+pip install "nexus-guard[middleware]"   # Agent middleware (needs Python ≥ 3.10)
+pip install "nexus-guard[dev]"          # contributing / running the test suite
 ```
+
+> The `middleware` extra pulls in `langchain >= 1.0` (the v1 agents framework),
+> which requires **Python ≥ 3.10**. The core guard and the `langchain` extra
+> still run on Python ≥ 3.9.
 
 Install from source (for local development):
 
@@ -158,10 +172,44 @@ always as a fail-safe fallback.
 
 ## Integrations
 
-### LangChain / LangGraph
+### LangChain agent middleware *(recommended)*
 
-Wrap any `BaseTool` with `NexusSecureTool` — it's a transparent drop-in that keeps
-the original `name`, `description`, and `args_schema`.
+If you build agents with `create_agent` (LangChain ≥ 1.0), drop in a single
+`NexusGuardMiddleware` and **every** tool call the agent makes is verified before
+it runs — no need to wrap tools one-by-one.
+
+```python
+from langchain.agents import create_agent
+from nexus_guard import NexusFinOpsGuard
+from nexus_guard.middleware import NexusGuardMiddleware
+
+guard = NexusFinOpsGuard(mode="embedded", spend_threshold=1000)
+
+agent = create_agent(
+    model="claude-opus-4-8",
+    tools=[search, buy],
+    middleware=[
+        NexusGuardMiddleware(
+            guard,
+            allowed_intents={"buy": "Purchase office supplies under $50"},
+        )
+    ],
+)
+
+with guard.session("Order a Python book under $35"):
+    agent.invoke({"messages": [("user", "Order Clean Code")]})   # ✅ verified
+    # A misaligned or over-budget tool call raises SecurityBlockException 🛑
+```
+
+The middleware reuses the guard's full policy (intent alignment, `spend_threshold`,
+`spend_limit`, `blocked_keywords`) and works in both embedded and remote modes.
+Requires the `middleware` extra (`pip install "nexus-guard[middleware]"`, Python ≥ 3.10).
+
+### LangChain tool wrapper
+
+Prefer wrapping individual tools (or on Python 3.9)? Wrap any `BaseTool` with
+`NexusSecureTool` — it's a transparent drop-in that keeps the original `name`,
+`description`, and `args_schema`.
 
 ```python
 from langchain_core.tools import tool
@@ -292,6 +340,7 @@ unreachable gateway).
 ### Other exports
 
 - `MPPGuard`, `PaymentChallenge`, `parse_payment_challenge` — HTTP‑402 / MPP support.
+- `NexusGuardMiddleware` — LangChain `AgentMiddleware` that verifies every tool call *(extra: `middleware`)*.
 - `NexusSecureTool` — LangChain `BaseTool` wrapper *(extra: `langchain`)*.
 - `NexusSentinelCallback` — LangChain/LangGraph observability callback *(extra: `langchain`)*.
 
