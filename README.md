@@ -305,6 +305,7 @@ and exits non-zero if any scenario misbehaves, so they double as integration tes
 
 | File | Shows |
 |:--|:--|
+| `example_gemini_agent.py` | **Interactive Gemini chatbot** with live dashboard reporting |
 | `example_claude_anthropic.py` | Guarding Claude `tool_use` dispatch |
 | `example_openai_agents.py` | Guarding OpenAI tool/function calls |
 | `example_langgraph.py` | `NexusSecureTool` + callback inside a `StateGraph` |

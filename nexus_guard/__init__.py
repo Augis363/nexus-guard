@@ -11,6 +11,11 @@ Core Classes
 - :class:`NexusFinOpsGuard` — Main guard client for wrapping tool functions.
 - :class:`SecurityBlockException` — Raised when a tool call is denied.
 
+Standalone Decision Engine (use Nexus Guard without the backend)
+----------------------------------------------------------------
+- :func:`evaluate_intent` — full decision engine (rules + optional Gemini).
+- :func:`fallback_evaluate` — pure rule-based evaluator, no LLM required.
+
 Stripe Machine Payments Protocol (zero extra dependencies)
 ----------------------------------------------------------
 - :class:`MPPGuard` — firewall for HTTP-402 / ``Payment`` scheme purchase intents.
@@ -22,6 +27,11 @@ Optional Integrations (require ``langchain-core >= 0.3.0``)
 - :class:`NexusSentinelCallback` — LangChain/LangGraph callback for observability.
 """
 
+from .engine import (
+    DEFAULT_HITL_THRESHOLD,
+    evaluate_intent,
+    fallback_evaluate,
+)
 from .guard import NexusFinOpsGuard, SecurityBlockException
 from .mpp import MPPGuard, PaymentChallenge, parse_payment_challenge
 
@@ -30,6 +40,9 @@ __version__ = "0.1.0"
 __all__ = [
     "NexusFinOpsGuard",
     "SecurityBlockException",
+    "evaluate_intent",
+    "fallback_evaluate",
+    "DEFAULT_HITL_THRESHOLD",
     "MPPGuard",
     "PaymentChallenge",
     "parse_payment_challenge",
